@@ -16,10 +16,8 @@ WHITE = (255, 255, 255)
 HEIGHT = 600
 WIDTH = 1000
 
-# car_images = [pygame.image.load("vehicles/car.png")]
-# motorcycle_images = [pygame.image.load("vehicles/motorcycle.png")]
-
-vehicle_images = {"car": [pygame.image.load("vehicles/car.png")], "motorcycle": [pygame.image.load("vehicles/motorcycle.png")]}
+vehicle_images = {"car": [pygame.image.load("vehicles/car.png")],
+				  "motorcycle": [pygame.image.load("vehicles/motorcycle.png")]}
 on_screen_vehicles = []
 number_of_lanes = 2
 
@@ -40,13 +38,23 @@ class Vehicle:
 		self.position[0] += self.speed
 
 
-def pick_image_representation(type_of_vehicle):
-	return random.choice(vehicle_images[type_of_vehicle])
+def main():
+	run = True
+	while run:
+		draw_game_window()
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				run = False
 
+			if pygame.key.get_pressed()[pygame.K_SPACE]:
+				create_vehicle()
 
-def draw_background():
-	pygame.draw.line(screen, WHITE, (0, 1 / 3 * HEIGHT), (WIDTH, 1 / 3 * HEIGHT))
-	pygame.draw.line(screen, WHITE, (0, 2 / 3 * HEIGHT), (WIDTH, 2 / 3 * HEIGHT))
+		draw_vehicle()
+		move_vehicles_and_delay()
+		remove_vehicle_when_off_screen()
+		pygame.display.update()
+
+	pygame.quit()
 
 
 def draw_game_window():
@@ -54,12 +62,9 @@ def draw_game_window():
 	draw_background()
 
 
-def draw_vehicle():
-	if len(on_screen_vehicles) == 0:
-		pass
-	for vehicle in on_screen_vehicles:
-		# print(f"Type of vehicle: {vehicle.type_of_vehicle}, position: {vehicle.position}" )
-		screen.blit(vehicle.image_representation, (vehicle.position[0], vehicle.position[1]))
+def draw_background():
+	pygame.draw.line(screen, WHITE, (0, 1 / 3 * HEIGHT), (WIDTH, 1 / 3 * HEIGHT))
+	pygame.draw.line(screen, WHITE, (0, 2 / 3 * HEIGHT), (WIDTH, 2 / 3 * HEIGHT))
 
 
 def create_vehicle():
@@ -70,39 +75,15 @@ def create_vehicle():
 							  pick_image_representation(type_of_vehicle)))
 
 
-def pick_random_speed():
-	return random.randint(10, 20)
-
-
-# TODO refactor
-def pick_random_lane_to_spawn():
-	pos_x, pos_y = 0, 1 / random.randint(2, 3) * HEIGHT
-	tries = 0
-	threshold = number_of_lanes
-	while lane_is_occupied_at_position(pos_y):
-		if tries == threshold:
-			return WIDTH + 1, pos_y
-		pos_y = 1 / random.randint(2, 3) * HEIGHT
-		tries += 1
-	return pos_x, pos_y
-
-
-def lane_is_occupied_at_position(pos_y):
+def draw_vehicle():
 	if len(on_screen_vehicles) == 0:
-		return False
-
+		pass
 	for vehicle in on_screen_vehicles:
-		if pos_y <= vehicle.position[1] <= pos_y + vehicle.image_representation.get_width():
-			print(f"Occupied, vehicles at scene: {len(on_screen_vehicles)}")
-			return True
-	return False
+		# print(f"Type of vehicle: {vehicle.type_of_vehicle}, position: {vehicle.position}" )
+		screen.blit(vehicle.image_representation, (vehicle.position[0], vehicle.position[1]))
 
 
-def pick_random_vehicle_type():
-	return random.choice(list(vehicle_images.keys()))
-
-
-def move_vehicles():
+def move_vehicles_and_delay():
 	for vehicle in on_screen_vehicles:
 		vehicle.move()
 	time.sleep(0.2)
@@ -120,23 +101,38 @@ def vehicle_out_of_screen(position):
 	return False
 
 
-def main():
-	run = True
-	while run:
-		draw_game_window()
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
-				run = False
+def pick_random_vehicle_type():
+	return random.choice(list(vehicle_images.keys()))
 
-			if pygame.key.get_pressed()[pygame.K_SPACE]:
-				create_vehicle()
 
-		draw_vehicle()
-		move_vehicles()
-		remove_vehicle_when_off_screen()
-		pygame.display.update()
+# TODO refactor
+def pick_random_lane_to_spawn():
+	pos_x, pos_y = 0, 1 / random.randint(2, 3) * HEIGHT
+	tries = 0
+	threshold = number_of_lanes
+	while lane_is_occupied_at_position(pos_y):
+		if tries == threshold:
+			return WIDTH + 1, pos_y
+		pos_y = 1 / random.randint(2, 3) * HEIGHT
+		tries += 1
+	return pos_x, pos_y
 
-	pygame.quit()
+
+def lane_is_occupied_at_position(pos_y):
+	for vehicle in on_screen_vehicles:
+		if pos_y <= vehicle.position[1] <= pos_y + vehicle.image_representation.get_width():
+			print(f"Occupied, vehicles at scene: {len(on_screen_vehicles)}")
+			time.sleeep(1)
+			return True
+	return False
+
+
+def pick_random_speed():
+	return random.randint(10, 20)
+
+
+def pick_image_representation(type_of_vehicle):
+	return random.choice(vehicle_images[type_of_vehicle])
 
 
 if __name__ == "__main__":
