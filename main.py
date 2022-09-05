@@ -111,7 +111,7 @@ def pick_random_lane_to_spawn():
 	pos_x, pos_y = 0, random.randint(0, number_of_lanes - 1) / number_of_lanes * HEIGHT
 	tries = 0
 	threshold = number_of_lanes
-	while lane_is_occupied_at_position(pos_y):
+	while lane_is_occupied_at_position((pos_x, pos_y)):
 		if tries == threshold:
 			return WIDTH + 1, pos_y
 		pos_y = random.randint(0, number_of_lanes - 1) / number_of_lanes * HEIGHT
@@ -119,9 +119,10 @@ def pick_random_lane_to_spawn():
 	return pos_x, pos_y
 
 
-def lane_is_occupied_at_position(pos_y):
+def lane_is_occupied_at_position(position):
 	for vehicle in on_screen_vehicles:
-		if pos_y == vehicle.position[1] and 0 <= vehicle.position[0] <= vehicle.image_representation.get_width():
+		if position[1] == vehicle.position[1] and \
+		   position[0] <= vehicle.position[0] <= position[0] + vehicle.image_representation.get_width():
 			return True
 	return False
 
