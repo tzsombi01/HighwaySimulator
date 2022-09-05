@@ -10,6 +10,8 @@ import time
 
 # TODO resizing images
 
+# TODO smoothness -> in how many steps do we perform the overtaking, is_overtaking boolean,
+
 GREEN = (70, 160, 0)
 WHITE = (255, 255, 255)
 
@@ -20,6 +22,7 @@ vehicle_images = {"car": [pygame.image.load("vehicles/car.png")],
 				  "motorcycle": [pygame.image.load("vehicles/motorcycle.png")]}
 on_screen_vehicles = []
 number_of_lanes = 3
+smoothness = 10
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -36,6 +39,15 @@ class Vehicle:
 
 	def move(self):
 		self.position[0] += self.speed
+
+	def is_faster(self, speed):
+		return self.speed > speed
+
+	def is_the_same_lane(self, position):
+		return self.position[1] == position[1]
+
+	def is_ahead_of_target_vehicle(self, position):
+		return position[0] < self.position[0] <= position[0] + self.image_representation.get_width()  + self.speed * 2
 
 
 def main():
@@ -125,6 +137,36 @@ def lane_is_occupied_at_position(position):
 		   position[0] <= vehicle.position[0] <= position[0] + vehicle.image_representation.get_width():
 			return True
 	return False
+
+
+def change_lanes():
+	for vehicle in on_screen_vehicles:
+		if check_if_changing_lanes_is_needed(vehicle) and changing_lanes_is_safe(vehicle.position):
+			change_lanes_movement(vehicle)
+
+
+def check_if_changing_lanes_is_needed(tested_vehicle):
+	for vehicle in on_screen_vehicles:
+		if  tested_vehicle.is_faster(vehicle.speed) and \
+			tested_vehicle.is_the_same_lane(vehicle.position) and \
+			vehicle.is_ahead_of_target_vehicle(tested_vehicle.position):
+			pass
+
+
+def changing_lanes_is_safe(position):
+	for vehicle in on_screen_vehicles:
+		# TODO check what lane is available to lane change
+		# check behind and ahead for vehicles
+		# if True --> set is_overtaking to True
+		# as by set smoothness change_lanes()
+		if position[1] == vehicle.position[1] and \
+		   position[0] <= vehicle.position[0] <= position[0] + vehicle.image_representation.get_width():
+			return True
+	return False
+
+
+def change_lanes_movement(vehicle):
+	pass
 
 
 def pick_random_speed():
