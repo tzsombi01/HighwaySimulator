@@ -4,13 +4,9 @@ import time
 
 # TODO PLAY/PAUSE button
 
-# TODO timer, multiple random lane spawn, overtaking/lane changing - also smoothing
-
-# TODO fix spawning bug - Check whether there's a vehicle in the place of the spawn
+# TODO Timer
 
 # TODO resizing images
-
-# TODO smoothness -> in how many steps do we perform the overtaking, is_overtaking boolean,
 
 GREEN = (70, 160, 0)
 WHITE = (255, 255, 255)
@@ -36,9 +32,16 @@ class Vehicle:
 		self.position = [position[0], position[1]]
 		self.speed = speed
 		self.image_representation = image_representation
+		self.is_changing_lanes = False
+		self.last_lane = self.position[1]
+		self.desired_lane = None
 
 	def move(self):
 		self.position[0] += self.speed
+
+	def change_lanes(self):
+		self.position[0] += self.speed
+		self.position[1] += (self.desired_lane - self.last_lane) / smoothness
 
 	def is_faster(self, speed):
 		return self.speed > speed
@@ -47,7 +50,16 @@ class Vehicle:
 		return self.position[1] == position[1]
 
 	def is_ahead_of_target_vehicle(self, position):
-		return position[0] < self.position[0] <= position[0] + self.image_representation.get_width()  + self.speed * 2
+		safe_amount_of_self_length = 3
+		if self.position[1] == position[1]:
+			return position[0] < self.position[0] <= position[0] + self.image_representation.get_width() * safe_amount_of_self_length
+		return False
+
+	def is_behind_of_target_vehicle(self, position):
+		safe_amount_of_self_length = 3
+		if self.position[1] == position[1]:
+			return position[0] > self.position[0] >= position[0] - self.image_representation.get_width() * safe_amount_of_self_length
+		return False
 
 
 def main():
@@ -61,13 +73,10 @@ def main():
 		if 0 < random.randint(0, 100) < 10:
 			create_vehicle()
 
-		for i, vehicle in enumerate(on_screen_vehicles):
-			print(len(on_screen_vehicles))
-			print(i + 1)
-			print(f"X:{vehicle.position[0]}, Y:{vehicle.position[1]}")
-
 		draw_vehicle()
+		change_lanes()
 		move_vehicles_and_delay()
+		check_if_end_of_lane_change()
 		remove_vehicle_when_off_screen()
 		pygame.display.update()
 
@@ -91,8 +100,18 @@ def draw_vehicle():
 
 def move_vehicles_and_delay():
 	for vehicle in on_screen_vehicles:
-		vehicle.move()
+		if vehicle.is_changing_lanes:
+			vehicle.change_lanes()
+		else:
+			vehicle.move()
 	time.sleep(0.2)
+
+
+def check_if_end_of_lane_change():
+	for vehicle in on_screen_vehicles:
+		if vehicle.desired_lane == vehicle.position[1]:
+			vehicle.last_lane = vehicle.desired_lane
+			vehicle.is_changing_lanes = False
 
 
 def remove_vehicle_when_off_screen():
@@ -110,16 +129,16 @@ def vehicle_out_of_screen(position):
 def create_vehicle():
 	type_of_vehicle = pick_random_vehicle_type()
 	on_screen_vehicles.append(Vehicle(type_of_vehicle,
-							  pick_random_lane_to_spawn(),
-							  pick_random_speed(),
-							  pick_image_representation(type_of_vehicle)))
+									  pick_random_lane(),
+									  pick_random_speed(),
+									  pick_image_representation(type_of_vehicle)))
 
 
 def pick_random_vehicle_type():
 	return random.choice(list(vehicle_images.keys()))
 
 
-def pick_random_lane_to_spawn():
+def pick_random_lane():
 	pos_x, pos_y = 0, random.randint(0, number_of_lanes - 1) / number_of_lanes * HEIGHT
 	tries = 0
 	threshold = number_of_lanes
@@ -133,16 +152,17 @@ def pick_random_lane_to_spawn():
 
 def lane_is_occupied_at_position(position):
 	for vehicle in on_screen_vehicles:
-		if position[1] == vehicle.position[1] and \
-		   position[0] <= vehicle.position[0] <= position[0] + vehicle.image_representation.get_width():
+		if  position[1] == vehicle.position[1] and \
+		    position[0] <= vehicle.position[0] <= position[0] + vehicle.image_representation.get_width():
 			return True
 	return False
 
 
 def change_lanes():
 	for vehicle in on_screen_vehicles:
-		if check_if_changing_lanes_is_needed(vehicle) and changing_lanes_is_safe(vehicle.position):
-			change_lanes_movement(vehicle)
+		if check_if_changing_lanes_is_needed(vehicle) and changing_lanes_is_safe(vehicle):
+			vehicle.is_changing_lanes = True
+			print(f"Vehicle should be changing lanes")
 
 
 def check_if_changing_lanes_is_needed(tested_vehicle):
@@ -150,23 +170,40 @@ def check_if_changing_lanes_is_needed(tested_vehicle):
 		if  tested_vehicle.is_faster(vehicle.speed) and \
 			tested_vehicle.is_the_same_lane(vehicle.position) and \
 			vehicle.is_ahead_of_target_vehicle(tested_vehicle.position):
-			pass
-
-
-def changing_lanes_is_safe(position):
-	for vehicle in on_screen_vehicles:
-		# TODO check what lane is available to lane change
-		# check behind and ahead for vehicles
-		# if True --> set is_overtaking to True
-		# as by set smoothness change_lanes()
-		if position[1] == vehicle.position[1] and \
-		   position[0] <= vehicle.position[0] <= position[0] + vehicle.image_representation.get_width():
 			return True
 	return False
 
 
-def change_lanes_movement(vehicle):
-	pass
+def changing_lanes_is_safe(tested_vehicle):
+	if check_up_down_a_lane_and_set_desired_lane(tested_vehicle):
+		return True
+	return False
+
+
+def check_up_down_a_lane_and_set_desired_lane(tested_vehicle):
+	upper_lane = tested_vehicle.position[0], tested_vehicle.position[1] - HEIGHT / number_of_lanes
+	downward_lane = tested_vehicle.position[0], tested_vehicle.position[1] + HEIGHT / number_of_lanes
+
+	if lane_is_on_screen(upper_lane) and check_for_vehicle_back_and_forth(upper_lane):
+		tested_vehicle.desired_lane = upper_lane[1]
+		return True
+
+	if lane_is_on_screen(downward_lane) and check_for_vehicle_back_and_forth(downward_lane):
+		tested_vehicle.desired_lane = downward_lane[1]
+		return True
+	return False
+
+
+def check_for_vehicle_back_and_forth(position):
+	for vehicle in on_screen_vehicles:
+		if vehicle.is_ahead_of_target_vehicle(position) or vehicle.is_behind_of_target_vehicle(position):
+			return False
+	return True
+
+
+def lane_is_on_screen(lane):
+	# 0 <= lane[1] <= (number_of_lanes - 1 / number_of_lanes) * HEIGHT
+	return  0 <= lane[1] < HEIGHT
 
 
 def pick_random_speed():
