@@ -6,16 +6,14 @@ import time
 
 # TODO Timer
 
-# TODO resizing images
-
 GREEN = (70, 160, 0)
 WHITE = (255, 255, 255)
 
 HEIGHT = 600
 WIDTH = 1000
 
-vehicle_images = {"car": [pygame.image.load("vehicles/car.png")],
-				  "motorcycle": [pygame.image.load("vehicles/motorcycle.png")]}
+vehicle_images = {"car": [pygame.image.load("vehicles/car1.png"), pygame.image.load("vehicles/car2.png")],
+				  "motorcycle": [pygame.image.load("vehicles/motorcycle1.png"), pygame.image.load("vehicles/motorcycle2.png")]}
 on_screen_vehicles = []
 number_of_lanes = 3
 smoothness = 10
@@ -162,7 +160,6 @@ def change_lanes():
 	for vehicle in on_screen_vehicles:
 		if check_if_changing_lanes_is_needed(vehicle) and changing_lanes_is_safe(vehicle):
 			vehicle.is_changing_lanes = True
-			print(f"Vehicle should be changing lanes")
 
 
 def check_if_changing_lanes_is_needed(tested_vehicle):
