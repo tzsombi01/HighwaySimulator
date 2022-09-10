@@ -44,19 +44,21 @@ class Vehicle:
 	def is_faster(self, speed):
 		return self.speed > speed
 
-	def is_the_same_lane(self, position):
-		return self.position[1] == position[1]
+	def is_the_same_lane(self, vehicle):
+		return self.position[1] == vehicle.position[1]
 
-	def is_ahead_of_target_vehicle(self, position):
+	def is_ahead_of_target_vehicle(self, vehicle, lane):
 		safe_amount_of_self_length = 3
-		if self.position[1] == position[1]:
-			return position[0] < self.position[0] <= position[0] + self.image_representation.get_width() * safe_amount_of_self_length
+		if self.position[1] == lane[1]:
+			return vehicle.position[0] < self.position[0] <= vehicle.position[0] + \
+				   vehicle.image_representation.get_width() * safe_amount_of_self_length
 		return False
 
-	def is_behind_of_target_vehicle(self, position):
+	def is_behind_of_target_vehicle(self, vehicle, lane):
 		safe_amount_of_self_length = 3
-		if self.position[1] == position[1]:
-			return position[0] > self.position[0] >= position[0] - self.image_representation.get_width() * safe_amount_of_self_length
+		if self.position[1] == lane[1]:
+			return vehicle.position[0] > self.position[0] >= vehicle.position[0] - \
+				   vehicle.image_representation.get_width() * safe_amount_of_self_length
 		return False
 
 
@@ -74,8 +76,8 @@ def main():
 		draw_vehicle()
 		change_lanes()
 		move_vehicles_and_delay()
-		check_if_end_of_lane_change()
 		remove_vehicle_when_off_screen()
+		check_if_end_of_lane_change()
 		pygame.display.update()
 
 	pygame.quit()
@@ -165,8 +167,8 @@ def change_lanes():
 def check_if_changing_lanes_is_needed(tested_vehicle):
 	for vehicle in on_screen_vehicles:
 		if  tested_vehicle.is_faster(vehicle.speed) and \
-			tested_vehicle.is_the_same_lane(vehicle.position) and \
-			vehicle.is_ahead_of_target_vehicle(tested_vehicle.position):
+			tested_vehicle.is_the_same_lane(vehicle) and \
+			vehicle.is_ahead_of_target_vehicle(tested_vehicle, tested_vehicle.position):
 			return True
 	return False
 
@@ -180,20 +182,17 @@ def changing_lanes_is_safe(tested_vehicle):
 def check_up_down_a_lane_and_set_desired_lane(tested_vehicle):
 	upper_lane = tested_vehicle.position[0], tested_vehicle.position[1] - HEIGHT / number_of_lanes
 	downward_lane = tested_vehicle.position[0], tested_vehicle.position[1] + HEIGHT / number_of_lanes
-
-	if lane_is_on_screen(upper_lane) and check_for_vehicle_back_and_forth(upper_lane):
-		tested_vehicle.desired_lane = upper_lane[1]
-		return True
-
-	if lane_is_on_screen(downward_lane) and check_for_vehicle_back_and_forth(downward_lane):
-		tested_vehicle.desired_lane = downward_lane[1]
-		return True
+	lanes = [upper_lane, downward_lane]
+	for lane in lanes:
+		if lane_is_on_screen(lane) and check_for_vehicle_back_and_forth(tested_vehicle, lane): #TODO
+			tested_vehicle.desired_lane = lane[1]
+			return True
 	return False
 
 
-def check_for_vehicle_back_and_forth(position):
+def check_for_vehicle_back_and_forth(tested_vehicle, lane):
 	for vehicle in on_screen_vehicles:
-		if vehicle.is_ahead_of_target_vehicle(position) or vehicle.is_behind_of_target_vehicle(position):
+		if vehicle.is_ahead_of_target_vehicle(tested_vehicle, lane) or vehicle.is_behind_of_target_vehicle(tested_vehicle, lane):
 			return False
 	return True
 
